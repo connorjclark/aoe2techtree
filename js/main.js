@@ -748,3 +748,69 @@ techtreeElement.addEventListener('wheel', function (e) {
         }
     }
 });
+
+class MatchSync {
+    constructor(btn, profileIdEl) {
+        this._matchSyncingHandle = null;
+        this._strings = null;
+        this._btn = btn;
+        this._profileIdEl = profileIdEl;
+
+        this._btn.addEventListener('click', () => {
+            if (this._matchSyncingHandle) {
+                this.disable();
+            } else {
+                this.enable();
+            }
+        });
+
+        this._profileIdEl.value = localStorage.getItem('profileId');
+        this._profileIdEl.addEventListener('change', () => {
+            localStorage.setItem('profileId', this._profileIdEl.value);
+        });
+    }
+
+    profileId() {
+        return Number(this._profileIdEl.value);
+    }
+
+    async enable() {
+        if (!this._strings) {
+            this._strings = await fetch('https://aoe2.net/api/strings?game=aoe2de&language=en').then(r => r.json());
+        }
+
+        this._check();
+        this._matchSyncingHandle = setInterval(() => this._check(), 1000);
+        this._btn.textContent = 'Disable match syncing';
+    }
+
+    disable() {
+        clearInterval(this._matchSyncingHandle);
+        this._matchSyncingHandle = null;
+        this._btn.textContent = 'Enable match syncing';
+    }
+
+    async _check() {
+        const resp = await fetch(`https://aoe2.net/api/player/lastmatch?game=aoe2de&language=en&profile_id=${this.profileId()}`);
+        const data = await resp.json();
+        // This field is bugged.
+        // if (data.last_match.finished !== null) return;
+        
+        const thisPlayer = data.last_match.players.find(p => p.profile_id === this.profileId());
+        const thisPlayerCiv = this._strings.civ[thisPlayer.civ].string;
+        if (document.querySelector('#civselect').value !== thisPlayerCiv) {
+            document.querySelector('#civselect').value = thisPlayerCiv;
+            loadCiv();
+        }
+        
+        let log = '';
+        log += `${data.last_match.name}\n`;
+        for (const player of data.last_match.players) {
+            log += `${player.name} - ${this._strings.civ[player.civ].string}\n`;
+        }
+        document.querySelector('#match-logs').value = log;
+        // this.disable();
+    }
+}
+
+const matchSync = new MatchSync(document.querySelector('#enable-match-syncing-btn'), document.querySelector('#profile-id'));

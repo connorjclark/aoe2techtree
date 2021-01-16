@@ -1,3 +1,15 @@
+my fork
+
+go to https://hoten-aoetech.surge.sh/
+
+upload:
+```
+npx surge . https://hoten-aoetech.surge.sh/
+```
+
+_______
+
+
 # aoe2techtree
 The Age of Empires II Tech Tree in your web browser
 
